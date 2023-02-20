@@ -8,7 +8,11 @@
 #define N 6
 char tab[M*N] = {'a'};
 
-
+struct box 
+{
+	char content;
+	int isBomb;
+};
 
 char initialize(char tab[M * N])
 {
