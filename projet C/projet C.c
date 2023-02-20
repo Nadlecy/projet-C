@@ -1,11 +1,55 @@
 // projet C.cpp : Ce fichier contient la fonction 'main'. L'exécution du programme commence et se termine à cet endroit.
 //
 
-#include <iostream>
+#include <stdio.h>
+#include "projet C.h"
+
+#define M 6
+#define N 6
+char tab[M*N] = {'a'};
+
+
+
+char initialize(char tab[M * N])
+{
+	int o;
+	int i;
+	int u; 
+	char element = 'A';
+	for (o = 0; o < N+1; o++)
+	{
+		printf("%d ", o);
+	}
+	printf("\n");
+	for (i = 0; i < M; i++) 
+	{
+		printf("%d ",i+1);
+		for (u = 0; u < N; u++) 
+		{
+			tab[i * M + u] = element;
+			printf("%c ",tab[i*M+u]);
+		}
+		printf("\n");
+	}
+	return tab;
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	char grid = initialize(tab);
+	printf(tab);
+	/*
+	int i;
+	int u;
+	for (i = 0; i < M; i++) 
+	{
+		for (u = 0; u < N; u++) 
+		{
+			printf("[ ]");
+		}
+		printf("\n");
+	}
+	*/
 }
 
 // Exécuter le programme : Ctrl+F5 ou menu Déboguer > Exécuter sans débogage
