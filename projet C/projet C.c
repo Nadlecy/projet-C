@@ -1,59 +1,137 @@
-// projet C.cpp : Ce fichier contient la fonction 'main'. L'exécution du programme commence et se termine à cet endroit.
+// projet C.c : Ce fichier contient la fonction 'main'. L'exécution du programme commence et se termine à cet endroit.
 //
 
 #include <stdio.h>
 #include "projet C.h"
+#include <time.h>
+#include <stdlib.h>
 
-#define M 6
-#define N 6
-char tab[M*N] = {'a'};
+#define M 3
+#define N 3
 
 struct box 
 {
-	char content;
+	char * content;
 	int isBomb;
+	int nearbyBombs;
 };
 
-char initialize(char tab[M * N])
+//struct box tab[M * N];
+
+void initialize(struct box tab[M * N])
 {
-	int o;
-	int i;
-	int u; 
-	char element = 'A';
-	for (o = 0; o < N+1; o++)
-	{
-		printf("%d ", o);
-	}
-	printf("\n");
+	int i, u; 
+	struct box element = { "[ ]", 0, 0 };
 	for (i = 0; i < M; i++) 
 	{
-		printf("%d ",i+1);
 		for (u = 0; u < N; u++) 
 		{
 			tab[i * M + u] = element;
-			printf("%c ",tab[i*M+u]);
+			printf("%s", element.content);
 		}
 		printf("\n");
 	}
-	return tab;
+}
+
+void bombPlacing(struct box tab[M * N])
+{
+	int bombRatio = 10;
+	//if bombRatio <= 0 || bombRatio >= 100;
+	int lower = 1;
+	int upper = M*N;
+	int i;
+	time_t t1;
+	srand((unsigned)time(&t1));;
+	for (i = 0; i < bombRatio; i++)
+	{
+		int num = (rand() %(upper - lower + 1)) + lower;
+		tab[num].isBomb = 1;
+	}
+}
+
+void bombRadar(struct box tab[M * N])
+{
+	int i;
+	for (i = 0;i < M*N; i++)
+	{
+		if (tab[i].isBomb != 1)
+		{
+			//horizontals
+			if (tab[i - 1].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			/*
+			if (i % N < N - 1 && tab[i + 1].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			//verticals
+			if (i > N && tab[i-N].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			if (i < (M*N-N+1) && tab[i+N].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			//diagonals up
+			if (i > N && i % N > 0 && tab[i - 1 - N].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			if (i > N && (i % N < N - 1) && tab[i + 1 - N].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			//diagonals down
+			if (i < (M * N - N + 1) && i % N > 0 && tab[i + N - 1].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+			if (i < (M * N - N + 1) && i % N < N - 1 && tab[i + N + 1].isBomb)
+			{
+				tab[i].nearbyBombs++;
+			}
+*/
+		}
+		else
+		{
+			tab[i].nearbyBombs = 9;
+		}
+	}
 }
 
 int main()
 {
-	char grid = initialize(tab);
-	printf(tab);
 	/*
-	int i;
-	int u;
-	for (i = 0; i < M; i++) 
+	initialize(tab);
+	bombPlacing(tab);
+	bombRadar(tab);
+	*/
+
+	struct box test[9];
+	struct box element = { "[ ]", 0, 0 };
+	int p;
+	for (p = 0; p < 9; p++)
 	{
-		for (u = 0; u < N; u++) 
+		test[p] = element;
+	}
+	test[5].isBomb = 1;
+	test[6].isBomb = 1;
+	test[8].isBomb = 1;
+
+	bombRadar(test);
+
+	int a, b;
+	
+	for (a = 0; a < M; a++) {
+		for (b = 0; b < N; b++) 
 		{
-			printf("[ ]");
+			printf("[%d]", test[a * b + b].nearbyBombs);
 		}
 		printf("\n");
 	}
-	*/
 }
 
 // Exécuter le programme : Ctrl+F5 ou menu Déboguer > Exécuter sans débogage
