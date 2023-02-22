@@ -6,30 +6,27 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define M 3
-#define N 3
+#define M 10
+#define N 10
 
 struct box 
 {
-	char * content;
+	char content;
 	int isBomb;
 	int nearbyBombs;
 };
 
-//struct box tab[M * N];
+struct box tab[M * N];
 
 void initialize(struct box tab[M * N])
 {
-	int i, u; 
-	struct box element = { "[ ]", 0, 0 };
-	for (i = 0; i < M; i++) 
+	struct box element = {' ', 0, 0 };
+	for (int i = 0; i < M; i++) 
 	{
-		for (u = 0; u < N; u++) 
+		for (int u = 0; u < N; u++) 
 		{
 			tab[i * M + u] = element;
-			printf("%s", element.content);
 		}
-		printf("\n");
 	}
 }
 
@@ -51,49 +48,54 @@ void bombPlacing(struct box tab[M * N])
 
 void bombRadar(struct box tab[M * N])
 {
-	int i;
-	for (i = 0;i < M*N; i++)
+	for (int i = 0;i < M*N; i++)
 	{
 		if (tab[i].isBomb != 1)
 		{
-			//horizontals
-			if (tab[i - 1].isBomb)
+			//horizontals 
+			//(looking left)
+			if (i>0 && i % M != 0 && tab[i - 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			/*
-			if (i % N < N - 1 && tab[i + 1].isBomb)
+			
+			//(looking right)
+			if (i % N != N-1 && tab[i + 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//verticals
+			//(looking up)
 			if (i > N && tab[i-N].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			if (i < (M*N-N+1) && tab[i+N].isBomb)
+			//(looking down)
+			if (i < (M*N-N) && tab[i+N].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			//diagonals up
+			//diagonals 
+			//(upper left)
 			if (i > N && i % N > 0 && tab[i - 1 - N].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			if (i > N && (i % N < N - 1) && tab[i + 1 - N].isBomb)
+			//(upper right)
+			if (i > N && i % N != N - 1 && tab[i + 1 - N].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			//diagonals down
-			if (i < (M * N - N + 1) && i % N > 0 && tab[i + N - 1].isBomb)
+			//(lower left)
+			if (i < (M * N - N) && i % N > 0 && tab[i + N - 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-			if (i < (M * N - N + 1) && i % N < N - 1 && tab[i + N + 1].isBomb)
+			//(lower right)
+			if (i < (M * N - N) && i % N != N - 1 && tab[i + N + 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
-*/
 		}
 		else
 		{
@@ -102,14 +104,76 @@ void bombRadar(struct box tab[M * N])
 	}
 }
 
+void displayGrid(struct box tab[M * N])
+{
+	for (int o = 0; o < M + 1; o++) 
+	{
+		if (o < 10)
+		{
+			printf(" %d ", o);
+		}
+		else
+		{
+			printf(" %d", o);
+		}
+	}
+	for (int i = 0; i < M; i++)
+	{
+		if (i < 9)
+		{
+			printf("\n %d ", i + 1);
+		}
+		else
+		{
+			printf("\n %d", i + 1);
+		}
+		for (int u = 0; u < N; u++)
+		{
+			printf("[%c]", tab[i * M + u].content);
+		}
+	}
+}
+
+void touchBox(struct box tab[M * N], int X, int Y) 
+{
+	if (tab[X-1 + N*(Y-1)].isBomb)
+	{
+		//Loss
+	}
+	else
+	{
+		if ((tab[X - 1 + N * (Y - 1)].nearbyBombs))
+		{
+			char newDisplay[2];
+			sprintf_s(newDisplay, 2, "%d", tab[X - 1 + N * (Y - 1)].nearbyBombs);
+			tab[X - 1 + N * (Y - 1)].content = newDisplay[0];
+		}
+		else
+		{
+			tab[X - 1 + N * (Y - 1)].content = "0";
+			touchBox(tab, X - 1, Y);
+			touchBox(tab, X + 1, Y);
+			touchBox(tab, X - 1, Y + 1);
+			touchBox(tab, X + 1, Y + 1);
+			touchBox(tab, X - 1, Y - 1);
+			touchBox(tab, X + 1, Y - 1);
+			touchBox(tab, X , Y - 1);
+			touchBox(tab, X , Y + 1);
+			
+		}
+
+	}
+}
+
 int main()
 {
-	/*
+	
 	initialize(tab);
 	bombPlacing(tab);
 	bombRadar(tab);
-	*/
+	displayGrid(tab);
 
+	/*
 	struct box test[9];
 	struct box element = { "[ ]", 0, 0 };
 	int p;
@@ -117,8 +181,8 @@ int main()
 	{
 		test[p] = element;
 	}
-	test[5].isBomb = 1;
-	test[6].isBomb = 1;
+	test[3].isBomb = 1;
+	test[1].isBomb = 1;
 	test[8].isBomb = 1;
 
 	bombRadar(test);
@@ -128,10 +192,11 @@ int main()
 	for (a = 0; a < M; a++) {
 		for (b = 0; b < N; b++) 
 		{
-			printf("[%d]", test[a * b + b].nearbyBombs);
+			printf("[%d]", test[a * M + b].nearbyBombs);
 		}
 		printf("\n");
 	}
+	*/
 }
 
 // Exécuter le programme : Ctrl+F5 ou menu Déboguer > Exécuter sans débogage
