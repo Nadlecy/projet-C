@@ -16,8 +16,18 @@ struct box
 	int nearbyBombs;
 };
 
-struct box tab[M * N];
+struct gameSettings 
+{
+	int bombTotal;
+	int bombsLeft;
+	int flags;
+	int isGameDone;
+};
 
+struct box tab[M * N];
+struct gameSettings rules = {10, 10, 10, 0};
+
+//creates an empty grid, dimensions M Lines * N Columns
 void initialize(struct box tab[M * N])
 {
 	struct box element = {' ', 0, 0 };
@@ -30,22 +40,22 @@ void initialize(struct box tab[M * N])
 	}
 }
 
-void bombPlacing(struct box tab[M * N])
+//puts bombs on the field
+void bombPlacing(struct box tab[M * N], int bombNumber)
 {
-	int bombRatio = 10;
-	//if bombRatio <= 0 || bombRatio >= 100;
 	int lower = 1;
 	int upper = M*N;
 	int i;
 	time_t t1;
 	srand((unsigned)time(&t1));;
-	for (i = 0; i < bombRatio; i++)
+	for (i = 0; i < bombNumber; i++)
 	{
 		int num = (rand() %(upper - lower + 1)) + lower;
 		tab[num].isBomb = 1;
 	}
 }
 
+//updates every box on the grid to tell how many bombs are nearby
 void bombRadar(struct box tab[M * N])
 {
 	for (int i = 0;i < M*N; i++)
@@ -106,7 +116,8 @@ void bombRadar(struct box tab[M * N])
 
 void displayGrid(struct box tab[M * N])
 {
-	for (int o = 0; o < M + 1; o++) 
+	printf("\n");
+	for (int o = 0; o < N + 1; o++) 
 	{
 		if (o < 10)
 		{
@@ -134,44 +145,143 @@ void displayGrid(struct box tab[M * N])
 	}
 }
 
-void touchBox(struct box tab[M * N], int X, int Y) 
+void dig(struct box tab[M * N], int X, int Y, int endTrigger) 
 {
-	if (tab[X-1 + N*(Y-1)].isBomb)
+	if (X>0 && X<M+1 && Y>0 && Y<N+1 && tab[X - 1 + N * (Y - 1)].content != 'P')
 	{
-		//Loss
-	}
-	else
-	{
-		if ((tab[X - 1 + N * (Y - 1)].nearbyBombs))
+		if (tab[X - 1 + N * (Y - 1)].isBomb)
 		{
-			char newDisplay[2];
-			sprintf_s(newDisplay, 2, "%d", tab[X - 1 + N * (Y - 1)].nearbyBombs);
-			tab[X - 1 + N * (Y - 1)].content = newDisplay[0];
+			endTrigger++;
 		}
-		else
+		else if (tab[X - 1 + N * (Y - 1)].content == ' ')
 		{
-			tab[X - 1 + N * (Y - 1)].content = "0";
-			touchBox(tab, X - 1, Y);
-			touchBox(tab, X + 1, Y);
-			touchBox(tab, X - 1, Y + 1);
-			touchBox(tab, X + 1, Y + 1);
-			touchBox(tab, X - 1, Y - 1);
-			touchBox(tab, X + 1, Y - 1);
-			touchBox(tab, X , Y - 1);
-			touchBox(tab, X , Y + 1);
-			
-		}
+			if ((tab[X - 1 + N * (Y - 1)].nearbyBombs))
+			{
+				char newDisplay[2];
+				sprintf_s(newDisplay, 2, "%d", tab[X - 1 + N * (Y - 1)].nearbyBombs);
+				tab[X - 1 + N * (Y - 1)].content = newDisplay[0];
+			}
+			else
+			{
+				tab[X - 1 + N * (Y - 1)].content = '0';
+				dig(tab, X - 1, Y, endTrigger);
+				dig(tab, X + 1, Y, endTrigger);
+				dig(tab, X - 1, Y + 1, endTrigger);
+				dig(tab, X + 1, Y + 1, endTrigger);
+				dig(tab, X - 1, Y - 1, endTrigger);
+				dig(tab, X + 1, Y - 1, endTrigger);
+				dig(tab, X, Y - 1, endTrigger);
+				dig(tab, X, Y + 1, endTrigger);
 
+			}
+		}
 	}
 }
 
+void flag(struct box tab[M * N], int X, int Y, int nbBombsLeft, struct gameSettings *rules)
+{
+	if (X > 0 && X < M + 1 && Y>0 && Y < N + 1)
+	{
+		if (tab[X - 1 + N * (Y - 1)].content == ' ')
+		{
+			if (rules->flags) {
+				tab[X - 1 + N * (Y - 1)].content = 'P';
+				rules->flags--;
+				if (tab[X - 1 + N * (Y - 1)].isBomb)
+				{
+					nbBombsLeft--;
+				}
+			}
+		}
+		else if (tab[X - 1 + N * (Y - 1)].content == 'P')
+		{
+			tab[X - 1 + N * (Y - 1)].content = '?';
+			rules->flags++;
+			if (tab[X - 1 + N * (Y - 1)].isBomb)
+			{
+				nbBombsLeft++;
+			}
+		}
+		else if (tab[X - 1 + N * (Y - 1)].content == '?')
+		{
+			tab[X - 1 + N * (Y - 1)].content = ' ';
+		}
+	}
+}
+
+
+/*
+void gamePlay()
+{
+	int X;
+	int Y;
+	char ans;
+	printf("Please choose the column you would like to play in : ");
+	scanf_s("%d", &Y);
+	if (Y >= 0 || Y < M)
+	{
+		printf("It seems like you put the wrong coordinate... Please choose again.");
+		while (Y >= 0 || Y < M)
+		{
+			printf("Please choose the column you would like to play in : ");
+			scanf_s("%d", &Y);
+		}
+	}
+	else 
+	{
+		printf("Please choose the column you would like to play in : ");
+		scanf_s("%d", &X);
+		if (X <= 0 || X > N)
+		{
+			printf("It seems like you put the wrong coordinate... Please choose again.");
+			while (X <= 0 || X > N)
+			{
+				printf("Please choose the column you would like to play in : ");
+				scanf_s("%d", &X);
+			}
+		}
+		else
+		{
+			printf("What would you like to on this block : Dig or Place a Flag ? (answer D/d or F/f) : ");
+			scanf_s("%c",&ans, ans);
+			if (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
+			{
+				printf("It looks like your answer isn't something we were expecting... please select again.");
+				while (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
+				{
+					printf("What would you like to on this block : Dig or Place a Flag ? (answer D or F) : ");
+					scanf_s("%c", &ans, ans);
+				}
+			}
+			else
+			{
+				if (ans == 'D' || ans == 'd')
+				{
+					dig(tab, X, Y, rules.isGameDone);
+				}
+				else
+				{
+					flag(tab, X, Y, rules.bombsLeft, rules.flags);
+				}
+			}
+		}
+	}
+}
+*/
 int main()
 {
 	
 	initialize(tab);
-	bombPlacing(tab);
+	bombPlacing(tab, rules.bombTotal);
 	bombRadar(tab);
 	displayGrid(tab);
+	flag(tab, 1, 1, rules.bombsLeft, &rules);
+	displayGrid(tab);
+	printf("%d", rules.flags);
+	flag(tab, 1, 1, rules.bombsLeft, &rules);
+	displayGrid(tab);
+	printf("%d", rules.flags);
+
 
 	/*
 	struct box test[9];
