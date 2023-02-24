@@ -21,11 +21,12 @@ struct gameSettings
 	int bombTotal;
 	int bombsLeft;
 	int flags;
+	int unopenedBoxes;
 	int isGameDone;
 };
 
 struct box tab[M * N];
-struct gameSettings rules = {10, 10, 10, 0};
+struct gameSettings rules = {10, 10, 10, M*N - 10, 0};
 
 //creates an empty grid, dimensions M Lines * N Columns
 void initialize(struct box tab[M * N])
@@ -145,13 +146,14 @@ void displayGrid(struct box tab[M * N])
 	}
 }
 
-void dig(struct box tab[M * N], int X, int Y, int endTrigger) 
+void dig(struct box tab[M * N], int X, int Y, struct gameSettings* rules)
 {
 	if (X>0 && X<M+1 && Y>0 && Y<N+1 && tab[X - 1 + N * (Y - 1)].content != 'P')
 	{
 		if (tab[X - 1 + N * (Y - 1)].isBomb)
 		{
-			endTrigger++;
+			rules->isGameDone++;
+			
 		}
 		else if (tab[X - 1 + N * (Y - 1)].content == ' ')
 		{
@@ -160,37 +162,36 @@ void dig(struct box tab[M * N], int X, int Y, int endTrigger)
 				char newDisplay[2];
 				sprintf_s(newDisplay, 2, "%d", tab[X - 1 + N * (Y - 1)].nearbyBombs);
 				tab[X - 1 + N * (Y - 1)].content = newDisplay[0];
+				rules->unopenedBoxes--;
 			}
 			else
 			{
 				tab[X - 1 + N * (Y - 1)].content = '0';
-				dig(tab, X - 1, Y, endTrigger);
-				dig(tab, X + 1, Y, endTrigger);
-				dig(tab, X - 1, Y + 1, endTrigger);
-				dig(tab, X + 1, Y + 1, endTrigger);
-				dig(tab, X - 1, Y - 1, endTrigger);
-				dig(tab, X + 1, Y - 1, endTrigger);
-				dig(tab, X, Y - 1, endTrigger);
-				dig(tab, X, Y + 1, endTrigger);
+				dig(tab, X - 1, Y, rules);
+				dig(tab, X + 1, Y, rules);
+				dig(tab, X - 1, Y + 1, rules);
+				dig(tab, X + 1, Y + 1, rules);
+				dig(tab, X - 1, Y - 1, rules);
+				dig(tab, X + 1, Y - 1, rules);
+				dig(tab, X, Y - 1, rules);
+				dig(tab, X, Y + 1, rules);
 
 			}
 		}
 	}
 }
 
-void flag(struct box tab[M * N], int X, int Y, int nbBombsLeft, struct gameSettings *rules)
+void flag(struct box tab[M * N], int X, int Y, struct gameSettings *rules)
 {
 	if (X > 0 && X < M + 1 && Y>0 && Y < N + 1)
 	{
 		if (tab[X - 1 + N * (Y - 1)].content == ' ')
 		{
-			if (rules->flags) {
-				tab[X - 1 + N * (Y - 1)].content = 'P';
-				rules->flags--;
-				if (tab[X - 1 + N * (Y - 1)].isBomb)
-				{
-					nbBombsLeft--;
-				}
+			tab[X - 1 + N * (Y - 1)].content = 'P';
+			rules->flags--;
+			if (tab[X - 1 + N * (Y - 1)].isBomb)
+			{
+				rules->bombsLeft--;
 			}
 		}
 		else if (tab[X - 1 + N * (Y - 1)].content == 'P')
@@ -199,7 +200,7 @@ void flag(struct box tab[M * N], int X, int Y, int nbBombsLeft, struct gameSetti
 			rules->flags++;
 			if (tab[X - 1 + N * (Y - 1)].isBomb)
 			{
-				nbBombsLeft++;
+				rules->bombsLeft++;
 			}
 		}
 		else if (tab[X - 1 + N * (Y - 1)].content == '?')
@@ -209,47 +210,84 @@ void flag(struct box tab[M * N], int X, int Y, int nbBombsLeft, struct gameSetti
 	}
 }
 
+//FUNCTIONS FOR OPTIMIZATION
 
-/*
-void gamePlay()
+
+int positionQueries(char * direction, int directionLimit)
 {
-	int X;
-	int Y;
-	char ans;
-	printf("Please choose the column you would like to play in : ");
-	scanf_s("%d", &Y);
-	if (Y >= 0 || Y < M)
+	int Z = 0;
+	while (Z <= 0 || Z > directionLimit)
 	{
-		printf("It seems like you put the wrong coordinate... Please choose again.");
-		while (Y >= 0 || Y < M)
+		printf("\nPlease choose a valid %s you would like to play in : ", direction);
+		scanf_s("%d", &Z);
+		if (Z <= 0 || Z > directionLimit)
 		{
-			printf("Please choose the column you would like to play in : ");
-			scanf_s("%d", &Y);
+			printf("\nThis %s does not exist...", direction);
 		}
 	}
-	else 
+	return Z;
+}
+
+char actionQueries()
+{
+	char ans = ' ';
+	while (ans != 'D' && ans != 'd' && ans != 'F' && ans != 'f')
 	{
-		printf("Please choose the column you would like to play in : ");
-		scanf_s("%d", &X);
-		if (X <= 0 || X > N)
+		printf("\nWhat would you like to do here ? Dig or place a Flag (D/F): ");
+		scanf_s("%c", &ans, 1);
+		if (ans != 'D' && ans != 'd' && ans != 'F' && ans != 'f')
 		{
-			printf("It seems like you put the wrong coordinate... Please choose again.");
-			while (X <= 0 || X > N)
-			{
-				printf("Please choose the column you would like to play in : ");
-				scanf_s("%d", &X);
-			}
+			printf("\nYou cannot do this here...");
+			getchar();
+		}
+	}
+	return ans;
+}
+
+void gamePlay(struct gameSettings* rules)
+{
+	//checks if any game-ending condition has been met (losing/winning)
+	while (rules->isGameDone == 0)
+	{
+		//Has the player opened every box except for mines ?
+		if (rules->unopenedBoxes == 0)
+		{
+			rules->isGameDone = 1;
 		}
 		else
 		{
-			printf("What would you like to on this block : Dig or Place a Flag ? (answer D/d or F/f) : ");
-			scanf_s("%c",&ans, ans);
+			//Show the current state of the minefield
+			displayGrid(tab);
+			//Take in the coordinates of the next box the player will act upon
+			int X = positionQueries("column", N);
+			int Y = positionQueries("line", M);
+
+			//Emptying the stdin
+			while (getchar() != '\n');
+			//Selecting the next action to take
+			char action = actionQueries();
+
+			//Emptying the stdin again
+			while (getchar() != '\n');
+			
+			//comitting the chosen action
+			if (action == 'D' || action == 'd')
+			{
+				dig(tab, X, Y, rules);
+			}
+			else
+			{
+				flag(tab, X, Y, rules);
+				
+			}
+
+			/*
 			if (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
 			{
 				printf("It looks like your answer isn't something we were expecting... please select again.");
 				while (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
 				{
-					printf("What would you like to on this block : Dig or Place a Flag ? (answer D or F) : ");
+					printf("\nWhat would you like to on this block : Dig or Place a Flag ? (answer D or F) : ");
 					scanf_s("%c", &ans, ans);
 				}
 			}
@@ -257,56 +295,41 @@ void gamePlay()
 			{
 				if (ans == 'D' || ans == 'd')
 				{
-					dig(tab, X, Y, rules.isGameDone);
+					dig(tab, X, Y, rules);
 				}
 				else
 				{
-					flag(tab, X, Y, rules.bombsLeft, rules.flags);
+					flag(tab, X, Y, rules);
 				}
-			}
+			}*/
 		}
 	}
 }
-*/
+
 int main()
 {
-	
-	initialize(tab);
-	bombPlacing(tab, rules.bombTotal);
-	bombRadar(tab);
-	displayGrid(tab);
-	flag(tab, 1, 1, rules.bombsLeft, &rules);
-	displayGrid(tab);
-	printf("%d", rules.flags);
-	flag(tab, 1, 1, rules.bombsLeft, &rules);
-	displayGrid(tab);
-	printf("%d", rules.flags);
-
-
-	/*
-	struct box test[9];
-	struct box element = { "[ ]", 0, 0 };
-	int p;
-	for (p = 0; p < 9; p++)
+	int playing = 1;
+	while(playing)
 	{
-		test[p] = element;
-	}
-	test[3].isBomb = 1;
-	test[1].isBomb = 1;
-	test[8].isBomb = 1;
+		//beginning of game
+		initialize(tab);
+		bombPlacing(tab, rules.bombTotal);
+		bombRadar(tab);
 
-	bombRadar(test);
+		//gameplay loop of interacting with the grid
+		gamePlay(&rules);
 
-	int a, b;
-	
-	for (a = 0; a < M; a++) {
-		for (b = 0; b < N; b++) 
+		if (rules.unopenedBoxes == 0)
 		{
-			printf("[%d]", test[a * M + b].nearbyBombs);
+			printf("\n Congratulations, you win !");
 		}
-		printf("\n");
+		else
+		{
+			printf("\n You lose !");
+		}
+
+		//demander au joueur s'il veut rejouer
 	}
-	*/
 }
 
 // Exécuter le programme : Ctrl+F5 ou menu Déboguer > Exécuter sans débogage
