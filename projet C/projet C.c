@@ -8,28 +8,39 @@
 
 #define M 10
 #define N 10
+/*
+#define ROUGE "\x1b[31m"
+#define VERT "\x1b[32m"
+#define JAUNE "\x1b[33m"
+#define BLEU "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN "\x1b[36m"
+*/
+#define COLOR_RESET "\x1b[0m"
 
 struct box 
 {
 	char content;
 	int isBomb;
 	int nearbyBombs;
+	char * color;
 };
+
+struct box tab[M * N];
 
 struct gameSettings 
 {
+	int width;
+	int height;
 	int bombTotal;
-	int bombsLeft;
 	int flags;
 	int unopenedBoxes;
 	int isGameDone;
 };
 
-struct box tab[M * N];
-struct gameSettings rules = {10, 10, 10, M*N - 10, 0};
-
-//creates an empty grid, dimensions M Lines * N Columns
-void initialize(struct box tab[M * N])
+/*
+//creates an empty grid, with the same dimensions as the player input
+void initialize(struct box tab[M * N], struct gameSettings* rules)
 {
 	struct box element = {' ', 0, 0 };
 	for (int i = 0; i < M; i++) 
@@ -40,16 +51,17 @@ void initialize(struct box tab[M * N])
 		}
 	}
 }
+*/
 
 //puts bombs on the field
-void bombPlacing(struct box tab[M * N], int bombNumber)
+void bombPlacing(struct box * tab, struct gameSettings* rules)
 {
 	int lower = 1;
-	int upper = M*N;
+	int upper = rules->width*rules->height;
 	int i;
 	time_t t1;
 	srand((unsigned)time(&t1));;
-	for (i = 0; i < bombNumber; i++)
+	for (i = 0; i < rules->bombTotal; i++)
 	{
 		int num = (rand() %(upper - lower + 1)) + lower;
 		tab[num].isBomb = 1;
@@ -57,53 +69,53 @@ void bombPlacing(struct box tab[M * N], int bombNumber)
 }
 
 //updates every box on the grid to tell how many bombs are nearby
-void bombRadar(struct box tab[M * N])
+void bombRadar(struct box * tab, struct gameSettings * rules)
 {
-	for (int i = 0;i < M*N; i++)
+	for (int i = 0;i < rules->width*rules->height; i++)
 	{
 		if (tab[i].isBomb != 1)
 		{
 			//horizontals 
 			//(looking left)
-			if (i>0 && i % M != 0 && tab[i - 1].isBomb)
+			if (i>0 && i % rules->width != 0 && tab[i - 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			
 			//(looking right)
-			if (i % N != N-1 && tab[i + 1].isBomb)
+			if (i % rules->width != rules->width -1 && tab[i + 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//verticals
 			//(looking up)
-			if (i > N && tab[i-N].isBomb)
+			if (i > rules->width && tab[i- rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//(looking down)
-			if (i < (M*N-N) && tab[i+N].isBomb)
+			if (i < (rules->height * rules->width - rules->width) && tab[i+ rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//diagonals 
 			//(upper left)
-			if (i > N && i % N > 0 && tab[i - 1 - N].isBomb)
+			if (i > rules->width && i % rules->width > 0 && tab[i - 1 - rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//(upper right)
-			if (i > N && i % N != N - 1 && tab[i + 1 - N].isBomb)
+			if (i > rules->width && i % rules->width != rules->width - 1 && tab[i + 1 - rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//(lower left)
-			if (i < (M * N - N) && i % N > 0 && tab[i + N - 1].isBomb)
+			if (i < (rules->height * rules->width - rules->width) && i % rules->width > 0 && tab[i + rules->width - 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//(lower right)
-			if (i < (M * N - N) && i % N != N - 1 && tab[i + N + 1].isBomb)
+			if (i < (rules->height * rules->width - rules->width) && i % rules->width != rules->width - 1 && tab[i + rules->width + 1].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
@@ -111,6 +123,36 @@ void bombRadar(struct box tab[M * N])
 		else
 		{
 			tab[i].nearbyBombs = 9;
+		}
+		//setting boxes' colors depending on the number of nearby bombs
+		switch (tab[i].nearbyBombs)
+		{
+			case 1:
+				tab[i].color = "\x1b[34m"; //blue value
+				break;
+			case 2:
+				tab[i].color = "\x1b[32m"; //green value
+				break;
+			case 3:
+				tab[i].color = "\x1b[31m"; //red value
+				break;
+			case 4:
+				tab[i].color = "\x1b[35m"; //magenta/purple value
+				break;
+			case 5:
+				tab[i].color = "\x1b[36m"; //cyan value
+				break;
+			case 6:
+				tab[i].color = "\x1b[36m"; //cyan value
+				break;
+			case 7:
+				tab[i].color = "\x1b[36m"; //cyan value
+				break;
+			case 8:
+				tab[i].color = "\x1b[33m"; //yellow value
+				break;
+			default :
+				tab[i].color = "\x1b[0m"; //white value
 		}
 	}
 }
@@ -141,7 +183,14 @@ void displayGrid(struct box tab[M * N])
 		}
 		for (int u = 0; u < N; u++)
 		{
-			printf("[%c]", tab[i * M + u].content);
+			if (tab[i * M + u].content != ' ')
+			{
+				printf("%s""[%c]" COLOR_RESET, tab[i * M + u].color, tab[i * M + u].content);
+			}
+			else
+			{
+				printf("[%c]", tab[i * M + u].content);
+			}
 		}
 	}
 }
@@ -166,6 +215,7 @@ void dig(struct box tab[M * N], int X, int Y, struct gameSettings* rules)
 			}
 			else
 			{
+				rules->unopenedBoxes--;
 				tab[X - 1 + N * (Y - 1)].content = '0';
 				dig(tab, X - 1, Y, rules);
 				dig(tab, X + 1, Y, rules);
@@ -189,19 +239,11 @@ void flag(struct box tab[M * N], int X, int Y, struct gameSettings *rules)
 		{
 			tab[X - 1 + N * (Y - 1)].content = 'P';
 			rules->flags--;
-			if (tab[X - 1 + N * (Y - 1)].isBomb)
-			{
-				rules->bombsLeft--;
-			}
 		}
 		else if (tab[X - 1 + N * (Y - 1)].content == 'P')
 		{
 			tab[X - 1 + N * (Y - 1)].content = '?';
 			rules->flags++;
-			if (tab[X - 1 + N * (Y - 1)].isBomb)
-			{
-				rules->bombsLeft++;
-			}
 		}
 		else if (tab[X - 1 + N * (Y - 1)].content == '?')
 		{
@@ -212,23 +254,23 @@ void flag(struct box tab[M * N], int X, int Y, struct gameSettings *rules)
 
 //FUNCTIONS FOR OPTIMIZATION
 
-
-int positionQueries(char * direction, int directionLimit)
+int numQuery(char * numberIs, char * numberPurpose, int numberLimit)
 {
 	int Z = 0;
-	while (Z <= 0 || Z > directionLimit)
+	while (Z <= 0 || Z > numberLimit)
 	{
-		printf("\nPlease choose a valid %s you would like to play in : ", direction);
+		printf("\nPlease choose a valid %s you would like to %s : ", numberIs, numberPurpose);
 		scanf_s("%d", &Z);
-		if (Z <= 0 || Z > directionLimit)
+		if (Z <= 0 || Z > numberLimit)
 		{
-			printf("\nThis %s does not exist...", direction);
+			printf("\nThis %s isn't valid...", numberIs);
+			while (getchar() != '\n');
 		}
 	}
 	return Z;
 }
 
-char actionQueries()
+char actionQuery()
 {
 	char ans = ' ';
 	while (ans != 'D' && ans != 'd' && ans != 'F' && ans != 'f')
@@ -238,7 +280,7 @@ char actionQueries()
 		if (ans != 'D' && ans != 'd' && ans != 'F' && ans != 'f')
 		{
 			printf("\nYou cannot do this here...");
-			getchar();
+			while (getchar() != '\n');
 		}
 	}
 	return ans;
@@ -246,7 +288,7 @@ char actionQueries()
 
 void gamePlay(struct gameSettings* rules)
 {
-	//checks if any game-ending condition has been met (losing/winning)
+	//checks if any game-ending condition has been met (losing/winning) every turn
 	while (rules->isGameDone == 0)
 	{
 		//Has the player opened every box except for mines ?
@@ -258,14 +300,15 @@ void gamePlay(struct gameSettings* rules)
 		{
 			//Show the current state of the minefield
 			displayGrid(tab);
+			printf("flags left:%d, unopened boxes:%d",rules->flags,rules->unopenedBoxes);
 			//Take in the coordinates of the next box the player will act upon
-			int X = positionQueries("column", N);
-			int Y = positionQueries("line", M);
+			int X = numQuery("column", "play with",N);
+			int Y = numQuery("line", "play with", M);
 
 			//Emptying the stdin
 			while (getchar() != '\n');
 			//Selecting the next action to take
-			char action = actionQueries();
+			char action = actionQuery();
 
 			//Emptying the stdin again
 			while (getchar() != '\n');
@@ -280,30 +323,43 @@ void gamePlay(struct gameSettings* rules)
 				flag(tab, X, Y, rules);
 				
 			}
-
-			/*
-			if (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
-			{
-				printf("It looks like your answer isn't something we were expecting... please select again.");
-				while (ans != 'D' || ans != 'd' || ans != 'F' || ans != 'f')
-				{
-					printf("\nWhat would you like to on this block : Dig or Place a Flag ? (answer D or F) : ");
-					scanf_s("%c", &ans, ans);
-				}
-			}
-			else
-			{
-				if (ans == 'D' || ans == 'd')
-				{
-					dig(tab, X, Y, rules);
-				}
-				else
-				{
-					flag(tab, X, Y, rules);
-				}
-			}*/
 		}
 	}
+}
+
+void gameEnd(struct gameSettings* rules)
+{
+	if (rules -> unopenedBoxes == 0)
+	{
+		printf("\n Congratulations, you win !");
+	}
+	else
+	{
+		printf("\n You lose !");
+	}
+}
+
+int playAgain() {
+	char ans = ' ';
+	while (ans != 'Y' && ans != 'y' && ans != 'N' && ans != 'n')
+	{
+		printf("\nWould you like to play again ? (Y/N)\n");
+		scanf_s("%c", &ans, 1);
+		if (ans != 'Y' && ans != 'y' && ans != 'N' && ans != 'n')
+		{
+			printf("\nThat is not a valid answer.");
+			while(getchar() != '\n');
+		}
+	}
+	if (ans == 'Y' || ans == 'y')
+	{
+		return 1;
+	}
+	else if (ans == 'N' || ans == 'n')
+	{
+		return 0;
+	}
+
 }
 
 int main()
@@ -311,34 +367,28 @@ int main()
 	int playing = 1;
 	while(playing)
 	{
+		//setting the grid size
+		int xSize = numQuery("column amount", "set your grid width at", 256);
+		int ySize = numQuery("line amount", "set your grid height at", 256);
+		//setting the number of bombs in the grid
+		int bombs = numQuery("amount of bombs", "put in your grid", xSize * ySize);
+
+		struct gameSettings rules = { xSize, ySize, bombs, bombs, xSize * ySize - bombs, 0 };
 		//beginning of game
-		initialize(tab);
-		bombPlacing(tab, rules.bombTotal);
+		//initialize(tab, &rules);
+		//memory allocation for the grid called tab
+		struct box* tab = (struct box*)malloc(sizeof(struct box) * rules.width * rules.height);
+		bombPlacing(tab, &rules);
 		bombRadar(tab);
 
 		//gameplay loop of interacting with the grid
 		gamePlay(&rules);
+		//when game ends, tell if player won or lost
+		gameEnd(&rules);
 
-		if (rules.unopenedBoxes == 0)
-		{
-			printf("\n Congratulations, you win !");
-		}
-		else
-		{
-			printf("\n You lose !");
-		}
-
-		//demander au joueur s'il veut rejouer
+		//freeing the allocated memory of the grid
+		free(tab);
+		//ask player if they want to play again
+		playing = playAgain();
 	}
 }
-
-// Exécuter le programme : Ctrl+F5 ou menu Déboguer > Exécuter sans débogage
-// Déboguer le programme : F5 ou menu Déboguer > Démarrer le débogage
-
-// Astuces pour bien démarrer : 
-//   1. Utilisez la fenêtre Explorateur de solutions pour ajouter des fichiers et les gérer.
-//   2. Utilisez la fenêtre Team Explorer pour vous connecter au contrôle de code source.
-//   3. Utilisez la fenêtre Sortie pour voir la sortie de la génération et d'autres messages.
-//   4. Utilisez la fenêtre Liste d'erreurs pour voir les erreurs.
-//   5. Accédez à Projet > Ajouter un nouvel élément pour créer des fichiers de code, ou à Projet > Ajouter un élément existant pour ajouter des fichiers de code existants au projet.
-//   6. Pour rouvrir ce projet plus tard, accédez à Fichier > Ouvrir > Projet et sélectionnez le fichier .sln.
