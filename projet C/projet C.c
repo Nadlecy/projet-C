@@ -6,8 +6,6 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define M 10
-#define N 10
 /*
 #define ROUGE "\x1b[31m"
 #define VERT "\x1b[32m"
@@ -26,8 +24,6 @@ struct box
 	char * color;
 };
 
-struct box tab[M * N];
-
 struct gameSettings 
 {
 	int width;
@@ -38,33 +34,39 @@ struct gameSettings
 	int isGameDone;
 };
 
-/*
+//SETUP FUNCTIONS
 //creates an empty grid, with the same dimensions as the player input
-void initialize(struct box tab[M * N], struct gameSettings* rules)
+void initialize(struct box * tab, struct gameSettings* rules)
 {
-	struct box element = {' ', 0, 0 };
-	for (int i = 0; i < M; i++) 
+	struct box element = {' ', 0, 0};
+	for (int i = 0; i < rules->height; i++)
 	{
-		for (int u = 0; u < N; u++) 
+		for (int u = 0; u < rules->width; u++) 
 		{
-			tab[i * M + u] = element;
+			tab[i * rules->height + u] = element;
 		}
 	}
 }
-*/
+
 
 //puts bombs on the field
 void bombPlacing(struct box * tab, struct gameSettings* rules)
 {
-	int lower = 1;
-	int upper = rules->width*rules->height;
-	int i;
+	int lower = 0;
+	int upper = rules->width*rules->height-1;
+	int i = 0;
 	time_t t1;
-	srand((unsigned)time(&t1));;
-	for (i = 0; i < rules->bombTotal; i++)
+	srand((unsigned)time(&t1));
+
+	while (i < rules->bombTotal) 
 	{
-		int num = (rand() %(upper - lower + 1)) + lower;
-		tab[num].isBomb = 1;
+
+		int num = (rand() % (rules->width * rules->height));
+		if (tab[num].isBomb != 1)
+		{
+			tab[num].isBomb = 1;
+			i++;
+		}
 	}
 }
 
@@ -89,7 +91,7 @@ void bombRadar(struct box * tab, struct gameSettings * rules)
 			}
 			//verticals
 			//(looking up)
-			if (i > rules->width && tab[i- rules->width].isBomb)
+			if (i > rules->width-1 && tab[i- rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
@@ -100,12 +102,12 @@ void bombRadar(struct box * tab, struct gameSettings * rules)
 			}
 			//diagonals 
 			//(upper left)
-			if (i > rules->width && i % rules->width > 0 && tab[i - 1 - rules->width].isBomb)
+			if (i > rules->width-1 && i % rules->width > 0 && tab[i - 1 - rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
 			//(upper right)
-			if (i > rules->width && i % rules->width != rules->width - 1 && tab[i + 1 - rules->width].isBomb)
+			if (i > rules->width-1 && i % rules->width != rules->width - 1 && tab[i + 1 - rules->width].isBomb)
 			{
 				tab[i].nearbyBombs++;
 			}
@@ -157,66 +159,30 @@ void bombRadar(struct box * tab, struct gameSettings * rules)
 	}
 }
 
-void displayGrid(struct box tab[M * N])
-{
-	printf("\n");
-	for (int o = 0; o < N + 1; o++) 
-	{
-		if (o < 10)
-		{
-			printf(" %d ", o);
-		}
-		else
-		{
-			printf(" %d", o);
-		}
-	}
-	for (int i = 0; i < M; i++)
-	{
-		if (i < 9)
-		{
-			printf("\n %d ", i + 1);
-		}
-		else
-		{
-			printf("\n %d", i + 1);
-		}
-		for (int u = 0; u < N; u++)
-		{
-			if (tab[i * M + u].content != ' ')
-			{
-				printf("%s""[%c]" COLOR_RESET, tab[i * M + u].color, tab[i * M + u].content);
-			}
-			else
-			{
-				printf("[%c]", tab[i * M + u].content);
-			}
-		}
-	}
-}
+//ACTION FUNCTIONS
 
-void dig(struct box tab[M * N], int X, int Y, struct gameSettings* rules)
+void dig(struct box * tab, int X, int Y, struct gameSettings* rules)
 {
-	if (X>0 && X<M+1 && Y>0 && Y<N+1 && tab[X - 1 + N * (Y - 1)].content != 'P')
+	if (X>0 && X< rules->height +1 && Y>0 && Y< rules->width +1 && tab[X - 1 + rules->width * (Y - 1)].content != 'P')
 	{
-		if (tab[X - 1 + N * (Y - 1)].isBomb)
+		if (tab[X - 1 + rules->width * (Y - 1)].isBomb)
 		{
 			rules->isGameDone++;
 			
 		}
-		else if (tab[X - 1 + N * (Y - 1)].content == ' ')
+		else if (tab[X - 1 + rules->width * (Y - 1)].content == ' ')
 		{
-			if ((tab[X - 1 + N * (Y - 1)].nearbyBombs))
+			if ((tab[X - 1 + rules->width * (Y - 1)].nearbyBombs))
 			{
 				char newDisplay[2];
-				sprintf_s(newDisplay, 2, "%d", tab[X - 1 + N * (Y - 1)].nearbyBombs);
-				tab[X - 1 + N * (Y - 1)].content = newDisplay[0];
+				sprintf_s(newDisplay, 2, "%d", tab[X - 1 + rules->width * (Y - 1)].nearbyBombs);
+				tab[X - 1 + rules->width * (Y - 1)].content = newDisplay[0];
 				rules->unopenedBoxes--;
 			}
 			else
 			{
 				rules->unopenedBoxes--;
-				tab[X - 1 + N * (Y - 1)].content = '0';
+				tab[X - 1 + rules->width * (Y - 1)].content = '0';
 				dig(tab, X - 1, Y, rules);
 				dig(tab, X + 1, Y, rules);
 				dig(tab, X - 1, Y + 1, rules);
@@ -229,25 +195,73 @@ void dig(struct box tab[M * N], int X, int Y, struct gameSettings* rules)
 			}
 		}
 	}
+	else if (X > 0 && X < rules->height + 1 && Y>0 && Y < rules->width + 1 && tab[X - 1 + rules->width * (Y - 1)].content == 'P')
+	{
+		printf("\nCan't dig a flagged area !");
+	}
 }
 
-void flag(struct box tab[M * N], int X, int Y, struct gameSettings *rules)
+void flag(struct box * tab, int X, int Y, struct gameSettings *rules)
 {
-	if (X > 0 && X < M + 1 && Y>0 && Y < N + 1)
+	if (X > 0 && X < rules->width + 1 && Y>0 && Y < rules->height + 1)
 	{
-		if (tab[X - 1 + N * (Y - 1)].content == ' ')
+		if (tab[X - 1 + rules->width * (Y - 1)].content == ' ')
 		{
-			tab[X - 1 + N * (Y - 1)].content = 'P';
+			tab[X - 1 + rules->width * (Y - 1)].content = 'P';
 			rules->flags--;
 		}
-		else if (tab[X - 1 + N * (Y - 1)].content == 'P')
+		else if (tab[X - 1 + rules->width * (Y - 1)].content == 'P')
 		{
-			tab[X - 1 + N * (Y - 1)].content = '?';
+			tab[X - 1 + rules->width * (Y - 1)].content = '?';
 			rules->flags++;
 		}
-		else if (tab[X - 1 + N * (Y - 1)].content == '?')
+		else if (tab[X - 1 + rules->width * (Y - 1)].content == '?')
 		{
-			tab[X - 1 + N * (Y - 1)].content = ' ';
+			tab[X - 1 + rules->width * (Y - 1)].content = ' ';
+		}
+	}
+}
+
+void displayGrid(struct box* tab, struct gameSettings* rules, int endDisplay)
+{
+	printf("\n");
+	for (int o = 0; o < rules->width + 1; o++)
+	{
+		if (o < 10)
+		{
+			printf(" %d ", o);
+		}
+		else
+		{
+			printf(" %d", o);
+		}
+	}
+	for (int i = 0; i < rules->height; i++)
+	{
+		if (i < 9)
+		{
+			printf("\n %d ", i + 1);
+		}
+		else
+		{
+			printf("\n %d", i + 1);
+		}
+		for (int u = 0; u < rules->width; u++)
+		{
+			if (tab[i * rules->height + u].isBomb && endDisplay)
+			{
+				tab[i * rules->height + u].content = 'X';
+			}
+
+			if (tab[i * rules->height + u].content != ' ' && tab[i * rules->height + u].content != 'P' && tab[i * rules->height + u].content != '?')
+			{
+				printf("%s""[%c]" COLOR_RESET, tab[i * rules->height + u].color, tab[i * rules->height + u].content);
+			}
+			else
+			{
+				printf("[%c]", tab[i * rules->height + u].content);
+			}
+
 		}
 	}
 }
@@ -286,7 +300,7 @@ char actionQuery()
 	return ans;
 }
 
-void gamePlay(struct gameSettings* rules)
+void gamePlay(struct box *tab ,struct gameSettings* rules)
 {
 	//checks if any game-ending condition has been met (losing/winning) every turn
 	while (rules->isGameDone == 0)
@@ -298,12 +312,13 @@ void gamePlay(struct gameSettings* rules)
 		}
 		else
 		{
+			system("cls");
 			//Show the current state of the minefield
-			displayGrid(tab);
+			displayGrid(tab, rules, 0);
 			printf("flags left:%d, unopened boxes:%d",rules->flags,rules->unopenedBoxes);
 			//Take in the coordinates of the next box the player will act upon
-			int X = numQuery("column", "play with",N);
-			int Y = numQuery("line", "play with", M);
+			int X = numQuery("column", "play with",rules->width);
+			int Y = numQuery("line", "play with", rules->height);
 
 			//Emptying the stdin
 			while (getchar() != '\n');
@@ -327,10 +342,11 @@ void gamePlay(struct gameSettings* rules)
 	}
 }
 
-void gameEnd(struct gameSettings* rules)
+void gameEnd(struct box* tab, struct gameSettings* rules)
 {
 	if (rules -> unopenedBoxes == 0)
 	{
+
 		printf("\n Congratulations, you win !");
 	}
 	else
@@ -375,16 +391,19 @@ int main()
 
 		struct gameSettings rules = { xSize, ySize, bombs, bombs, xSize * ySize - bombs, 0 };
 		//beginning of game
-		//initialize(tab, &rules);
+		//
 		//memory allocation for the grid called tab
 		struct box* tab = (struct box*)malloc(sizeof(struct box) * rules.width * rules.height);
+		initialize(tab, &rules);
 		bombPlacing(tab, &rules);
-		bombRadar(tab);
+		bombRadar(tab, &rules);
 
 		//gameplay loop of interacting with the grid
-		gamePlay(&rules);
-		//when game ends, tell if player won or lost
-		gameEnd(&rules);
+		gamePlay(tab, &rules);
+		//when game ends, tell if player won or lose
+		system("cls");
+		gameEnd(tab, &rules);
+		displayGrid(tab, &rules, 1);
 
 		//freeing the allocated memory of the grid
 		free(tab);
