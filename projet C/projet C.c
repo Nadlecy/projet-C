@@ -38,8 +38,8 @@ void initialize(struct box * tab, struct gameSettings* rules)
 	}
 }
 
-
 //puts bombs on the field
+/*
 void bombPlacing(struct box * tab, struct gameSettings* rules)
 {
 	//setting the minimum and maximum index values of tab on which bombs will be put
@@ -63,6 +63,38 @@ void bombPlacing(struct box * tab, struct gameSettings* rules)
 			tab[num].isBomb = 1;
 			i++;
 		}
+	}
+}
+*/
+void bombPlacing(struct box* tab, struct gameSettings* rules)
+{
+	//setting the minimum and maximum index values of tab on which bombs will be put
+	int lower = 0;
+	int upper = rules->width * rules->height - 1;
+	//setting time variable, necessary for different generations
+	time_t t1;
+	srand((unsigned)time(&t1));
+
+	//making a full array
+	int* randTab = (int*)malloc(sizeof(int) * rules->width * rules->height);
+	for (int i = 0; i < rules->width * rules->height; i++)
+	{
+		randTab[i] = i;
+	}
+
+	//for each bomb to put down
+	for (int i=0;i < rules->bombTotal;i++)
+	{
+		int num = (rand() % (rules->width * rules->height));
+		tab[num].isBomb = 1;
+		//creating an array, sized to fit every possible index
+		int* randTab = (int*)malloc(sizeof(int) * rules->width * rules->height - i);
+		//for every number that could be used as an idex for a bomb's placement
+		for (int u = 0; u < rules->width * rules->height; u++)
+		{
+
+		}
+		//get a random value from randTab, put a bomb and then add it to the bannedValues
 	}
 }
 
@@ -421,8 +453,8 @@ int main()
 	while(playing)
 	{
 		//setting the grid size
-		int xSize = numQuery("column amount", "set your grid width at", 256);
-		int ySize = numQuery("line amount", "set your grid height at", 256);
+		int xSize = numQuery("column amount", "set your grid width at", 48);
+		int ySize = numQuery("line amount", "set your grid height at", 48);
 		//setting the number of bombs in the grid
 		int bombs = numQuery("amount of bombs", "put in your grid", xSize * ySize);
 
