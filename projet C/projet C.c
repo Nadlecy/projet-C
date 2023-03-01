@@ -6,16 +6,6 @@
 #include <time.h>
 #include <stdlib.h>
 
-/*
-#define ROUGE "\x1b[31m"
-#define VERT "\x1b[32m"
-#define JAUNE "\x1b[33m"
-#define BLEU "\x1b[34m"
-#define MAGENTA "\x1b[35m"
-#define CYAN "\x1b[36m"
-*/
-#define COLOR_RESET "\x1b[0m"
-
 struct box 
 {
 	char content;
@@ -35,7 +25,7 @@ struct gameSettings
 };
 
 //SETUP FUNCTIONS
-//creates an empty grid, with the same dimensions as the player input
+//fills an empty grid with empty boxes, with the same dimensions as the player input
 void initialize(struct box * tab, struct gameSettings* rules)
 {
 	struct box element = {' ', 0, 0};
@@ -52,13 +42,15 @@ void initialize(struct box * tab, struct gameSettings* rules)
 //puts bombs on the field
 void bombPlacing(struct box * tab, struct gameSettings* rules)
 {
+	//setting the minimum and maximum index values of tab on which bombs will be put
 	int lower = 0;
 	int upper = rules->width*rules->height-1;
-	int i = 0;
-	//implementing time variable, necessary for different generations
+	//setting time variable, necessary for different generations
 	time_t t1;
 	srand((unsigned)time(&t1));
 
+	//while all bombs have not been placed
+	int i = 0;
 	while (i < rules->bombTotal) 
 	{
 		//selecting a random number between 1 and the length of the full list
@@ -244,6 +236,7 @@ void flag(struct box * tab, int X, int Y, struct gameSettings *rules)
 	}
 }
 
+//VISUAL FUNCTION
 //gives a visual representation of the minefield
 void displayGrid(struct box* tab, struct gameSettings* rules, int endDisplay)
 {
@@ -285,7 +278,7 @@ void displayGrid(struct box* tab, struct gameSettings* rules, int endDisplay)
 			//shows the adequate content in the correspopnding color if it has been discovered via dig
 			if (tab[i * rules->height + u].content != ' ' && tab[i * rules->height + u].content != 'P' && tab[i * rules->height + u].content != '?')
 			{
-				printf("%s""[%c]" COLOR_RESET, tab[i * rules->height + u].color, tab[i * rules->height + u].content);
+				printf("%s""[%c]\x1b[0m", tab[i * rules->height + u].color, tab[i * rules->height + u].content);
 			}
 			//otherwise just show its content with no color
 			else
@@ -377,6 +370,8 @@ void gamePlay(struct box *tab ,struct gameSettings* rules)
 	}
 }
 
+//"AFTER THE GAME" FUNCTIONS
+//shows a message after the game has ended, depending on whether the win conditions have been met or not
 void gameEnd(struct box* tab, struct gameSettings* rules)
 {
 	if (rules -> unopenedBoxes == 0)
@@ -431,9 +426,9 @@ int main()
 		//setting the number of bombs in the grid
 		int bombs = numQuery("amount of bombs", "put in your grid", xSize * ySize);
 
+		//creating the rules based on the previous inputs
 		struct gameSettings rules = { xSize, ySize, bombs, bombs, xSize * ySize - bombs, 0 };
 		//beginning of game
-		//
 		//memory allocation for the grid called tab
 		struct box* tab = (struct box*)malloc(sizeof(struct box) * rules.width * rules.height);
 		initialize(tab, &rules);
@@ -442,15 +437,16 @@ int main()
 
 		//gameplay loop of interacting with the grid
 		gamePlay(tab, &rules);
-		//when game ends, tell if player won or lose
+
+		//when game ends, show the grid with mines revealed
 		system("cls");
-		gameEnd(tab, &rules);
 		displayGrid(tab, &rules, 1);
+		//tell if player won or lose
+		gameEnd(tab, &rules);
 
 		//freeing the allocated memory of the grid
 		free(tab);
 		//ask player if they want to play again
 		playing = playAgain();
 	}
-
 }
