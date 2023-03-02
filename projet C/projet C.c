@@ -38,34 +38,7 @@ void initialize(struct box * tab, struct gameSettings* rules)
 	}
 }
 
-//puts bombs on the field
-/*
-void bombPlacing(struct box * tab, struct gameSettings* rules)
-{
-	//setting the minimum and maximum index values of tab on which bombs will be put
-	int lower = 0;
-	int upper = rules->width*rules->height-1;
-	//setting time variable, necessary for different generations
-	time_t t1;
-	srand((unsigned)time(&t1));
-
-	//while all bombs have not been placed
-	int i = 0;
-	while (i < rules->bombTotal) 
-	{
-		//selecting a random number between 1 and the length of the full list
-		int num = (rand() % (rules->width * rules->height));
-
-		//verifies if there is already a bomb at the place indicated by the called number
-		if (tab[num].isBomb != 1)
-		{
-			//if not, it becomes one
-			tab[num].isBomb = 1;
-			i++;
-		}
-	}
-}
-*/
+//puts bombs on the field (the number of which are input by the player)
 void bombPlacing(struct box* tab, struct gameSettings* rules)
 {
 	//setting the minimum and maximum index values of tab on which bombs will be put
@@ -83,18 +56,15 @@ void bombPlacing(struct box* tab, struct gameSettings* rules)
 	}
 
 	//for each bomb to put down
-	for (int i=0;i < rules->bombTotal;i++)
+	for (int i = 0;i < rules->bombTotal;i++)
 	{
-		int num = (rand() % (rules->width * rules->height));
-		tab[num].isBomb = 1;
-		//creating an array, sized to fit every possible index
-		int* randTab = (int*)malloc(sizeof(int) * rules->width * rules->height - i);
-		//for every number that could be used as an idex for a bomb's placement
-		for (int u = 0; u < rules->width * rules->height; u++)
-		{
+		int length = (rules->width * rules->height) - i;
 
-		}
-		//get a random value from randTab, put a bomb and then add it to the bannedValues
+		//getting a random number
+		int indice = rand() % length;
+		tab[randTab[indice]].isBomb = 1;
+		//editing array to remove the currently added value
+		memcpy(randTab + indice, randTab + indice + 1, sizeof(int) * ( length - indice - 1 ) );
 	}
 }
 
@@ -470,11 +440,11 @@ int main()
 		//gameplay loop of interacting with the grid
 		gamePlay(tab, &rules);
 
-		//when game ends, show the grid with mines revealed
+		//when game ends, tell if player won or lose
 		system("cls");
-		displayGrid(tab, &rules, 1);
-		//tell if player won or lose
 		gameEnd(tab, &rules);
+		//show the grid with mines revealed
+		displayGrid(tab, &rules, 1);
 
 		//freeing the allocated memory of the grid
 		free(tab);
