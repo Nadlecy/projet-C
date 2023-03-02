@@ -18,6 +18,9 @@
     <ClCompile Include="projet C.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="Source.cpp">
+      <Filter>Fichiers de ressources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="projet C.h">

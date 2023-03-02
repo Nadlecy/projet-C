@@ -2,7 +2,6 @@
 //
 
 #include <stdio.h>
-#include "projet C.h"
 #include <time.h>
 #include <stdlib.h>
 
